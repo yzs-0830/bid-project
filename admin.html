@@ -204,13 +204,13 @@
     async function loadProductInfo() {
       try {
         // 取得商品
-        const res = await fetch(`${backend}/get_product`);
+        const res = await fetch(`${backend}/api/get_product`);
         product = await res.json();
         document.getElementById("prod-name").textContent = product.name;
         document.getElementById("prod-quantity").textContent = product.total_quantity;
 
         // 取得出價清單
-        const res2 = await fetch(`${backend}/bid_list`);
+        const res2 = await fetch(`${backend}/api/bid_list`);
         const bids = await res2.json();
 
         // 最高價
