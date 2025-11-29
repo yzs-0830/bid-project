@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理員後台</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fb;
+      margin: 0;
+      padding: 30px;
+    }
+
+    h1 { text-align: center; margin-bottom: 20px; }
+
+    .layout {
+      display: flex;
+      gap: 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .left-panel, .right-panel {
+      background: white;
+      flex: 1;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    }
+
+    label { font-weight: bold; display: block; margin-top: 15px; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    input.error { border-color: red; }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background: #4267ff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: #2f4de0; }
+
+    #responseBox {
+      margin-top: 25px;
+      padding: 12px;
+      background: #eef3ff;
+      border-radius: 8px;
+      display: none;
+      white-space: pre-line;
+    }
+
+    #productCard {
+      background-color: #eef3ff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      margin-top: 10px;
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    #prod-ranking { margin-top: 10px; }
+    .rank-row { display: flex; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid #ddd; }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-user { flex: 1; text-align: left; }
+    .rank-price { font-weight: bold; color: #0077cc; margin-right: 10px; }
+    .rank-score { font-weight: bold; color: #e67300; margin-right: 10px; }
+    .rank-remaining { font-size: 14px; color: #555; }
+  </style>
+</head>
+
+<body>
+  <h1>管理員後台</h1>
+
+  <div class="layout">
+    <!-- 左邊：上架商品表單 -->
+    <div class="left-panel">
+      <h2>上架商品</h2>
+
+      <label>商品名稱</label>
+      <input id="item_name" placeholder="輸入商品名稱" />
+
+      <label>底價</label>
+      <input id="base_price" type="number" placeholder="輸入商品底價" />
+
+      <label>庫存量</label>
+      <input id="stock" type="number" placeholder="輸入庫存量" />
+
+      <label>維持時間（分鐘）</label>
+      <input id="duration" type="number" placeholder="輸入維持時間" />
+
+      <label>Score A</label>
+      <input id="score_a" type="number" placeholder="A 分數" />
+
+      <label>Score B</label>
+      <input id="score_b" type="number" placeholder="B 分數" />
+
+      <label>Score C</label>
+      <input id="score_c" type="number" placeholder="C 分數" />
+
+      <button onclick="submitItem()">上架商品</button>
+
+      <div id="responseBox"></div>
+    </div>
+
+    <!-- 右邊：商品資訊 -->
+    <div class="right-panel">
+      <h2>目前商品資訊</h2>
+      <div id="productCard">
+        <h3 id="prod-name"></h3>
+        <p>可售份數: <span id="prod-quantity"></span></p>
+        <p>目前最高價: <span id="prod-highest"></span></p>
+        <p>剩餘時間: <span id="prod-countdown">--:--</span></p>
+
+        <h4>出價者</h4>
+        <div id="prod-ranking"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const backend = "http://localhost:8000";
+    let product = null;
+
+    function validateInputs(fields) {
+      let ok = true;
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (!el.value) {
+          el.classList.add('error');
+          ok = false;
+        } else {
+          el.classList.remove('error');
+        }
+      });
+      return ok;
+    }
+
+    async function submitItem() {
+      const fields = ['item_name','base_price','stock','duration','score_a','score_b','score_c'];
+      if(!validateInputs(fields)){
+        const box = document.getElementById('responseBox');
+        box.style.display='block'; box.style.color='red';
+        box.textContent="❌ 請完整填寫所有欄位！";
+        return;
+      }
+
+      const payload = {
+        name: document.getElementById('item_name').value,
+        base_price: Number(document.getElementById('base_price').value),
+        total_quantity: Number(document.getElementById('stock').value),
+        duration_minutes: Number(document.getElementById('duration').value)
+      };
+
+      const scores = {
+        A: Number(document.getElementById('score_a').value),
+        B: Number(document.getElementById('score_b').value),
+        C: Number(document.getElementById('score_c').value)
+      };
+
+      try {
+        const res1 = await fetch(`${backend}/admin/set_product`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const prodResult = await res1.json();
+        product = prodResult.product;
+
+        await fetch(`${backend}/admin/set_score`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(scores)
+        });
+
+        const box = document.getElementById('responseBox');
+        box.style.display='block'; box.style.color='green';
+        box.textContent = `✅ 上架成功！\n商品名稱：${product.name}\n底價：${product.base_price}\n庫存：${product.total_quantity}\nScore：A=${scores.A}, B=${scores.B}, C=${scores.C}`;
+
+        fields.forEach(f=>document.getElementById(f).value="");
+
+      } catch(e) {
+        console.error(e);
+        const box = document.getElementById('responseBox');
+        box.style.display='block'; box.style.color='red';
+        box.textContent="❌ 上架失敗，請檢查後端";
+      }
+    }
+
+    async function loadProductInfo() {
+      try {
+        // 取得商品
+        const res = await fetch(`${backend}/get_product`);
+        product = await res.json();
+        document.getElementById("prod-name").textContent = product.name;
+        document.getElementById("prod-quantity").textContent = product.total_quantity;
+
+        // 取得出價清單
+        const res2 = await fetch(`${backend}/bid_list`);
+        const bids = await res2.json();
+
+        // 最高價
+        const highest = bids.length ? Math.max(...bids.map(b=>b.bid_price)) : 0;
+        document.getElementById("prod-highest").textContent = highest;
+
+        // 排行榜
+        const rankingDiv = document.getElementById("prod-ranking");
+        rankingDiv.innerHTML = "";
+        bids.forEach((b, idx) => {
+          const row = document.createElement("div");
+          row.className = "rank-row";
+          row.dataset.bidTime = b.timestamp;
+          row.innerHTML = `
+            <div class="rank-user">${idx+1}. ${b.user_id}</div>
+            <div class="rank-price">$${b.bid_price}</div>
+            <div class="rank-score">${b.score.toFixed(2)}</div>
+            <div class="rank-remaining">--:--</div>
+          `;
+          rankingDiv.appendChild(row);
+        });
+
+        updateCountdown();
+      } catch(e){
+        console.error(e);
+      }
+    }
+
+    function updateCountdown() {
+      if(!product || !product.start_time || !product.period) return;
+
+      const now = Date.now();
+      let remaining = product.start_time + product.period - now;
+      if(remaining < 0) remaining = 0;
+
+      const min = Math.floor(remaining / 60000);
+      const sec = Math.floor((remaining % 60000) / 1000);
+      document.getElementById("prod-countdown").textContent = `${min}分${sec}秒`;
+
+      document.querySelectorAll(".rank-row").forEach(row => {
+        const bidTime = Number(row.dataset.bidTime);
+        let rem = Math.max(product.period - (bidTime - product.start_time), 0);
+        const m = Math.floor(rem / 60000);
+        const s = Math.floor((rem % 60000) / 1000);
+        row.querySelector(".rank-remaining").textContent = `${m}分${s}秒`;
+      });
+    }
+
+    // 每秒自動刷新
+    setInterval(loadProductInfo, 1000);
+
+    // 初始化
+    loadProductInfo();
+  </script>
+</body>
+</html>
