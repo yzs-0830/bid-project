@@ -53,7 +53,17 @@ def bid(value: Bid):
     time_elapsed = current_timestamp - product["start_time"]
     time_for_score = max(time_elapsed, 1)
 
-    W = 1  # ⭐ 之後會從會員系統帶進來
+    # 🌟 修正：從 members 獲取當前使用者的 weight
+    user = value.user_id
+    if user not in members:
+        return {"status": "fail", "message": "請先註冊或登入"}
+
+    W = members[user]["weight"]  # ⭐ 從會員系統帶入真實 weight
+    
+    # 檢查是否已結算
+    if product.get("settled"):
+        return {"status": "fail", "message": "商品已結算，無法出價"}
+
     bid_score = calc_score(value.bid_price, time_for_score, W)
 
     product["bids"].append({
@@ -100,3 +110,17 @@ def get_product():
     if not product.get("settled") and now >= product["start_time"] + product["period"]:
         settle_product()
     return product
+
+@router.get("/get_score")
+def get_product():
+    return score
+
+@router.get("/user_info")
+def user_info(username: str):
+    if username not in members:
+        return {"status": "fail", "message": "用戶不存在"}
+    return {
+        "status": "ok",
+        "username": username,
+        "weight": members[username]["weight"]
+    }

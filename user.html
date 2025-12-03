@@ -182,9 +182,12 @@ input[type="number"] {
     <div class="meta">
       <div>可售份數: <strong id="product-quantity">3</strong></div>
       <div style="margin-top:6px;">目前最高價: <strong id="product-highest">—</strong></div>
-      <div style="margin-top:6px;">得標最低價: <strong id="product-min-winner">—</strong></div>
+      
+      <div style="margin-top:6px;">得標所需價格: <strong id="product-min-score-price">—</strong></div> 
+      
       <div style="margin-top:6px;">要求最低價: <strong id="product-min-required">—</strong></div>
       <div style="margin-top:6px;">剩餘時間: <strong id="product-countdown">—</strong></div>
+      
       <button onclick="loadProductInfo()">更新商品資訊</button>
     </div>
   </div>
@@ -216,6 +219,8 @@ const backend = "http://localhost:8000";
 
 // 🌟 從 localStorage 取得登入使用者
 const currentUser = localStorage.getItem("username");
+let userWeight = Number(localStorage.getItem("weight")); 
+
 if(!currentUser){
     alert("尚未登入，請先登入");
     window.location.href = "login.html";
@@ -232,29 +237,94 @@ function escapeHtml(str) {
                     .replace(/'/g,"&#039;");
 }
 
+//更新weight
+async function refreshUserWeight(){
+  // 🌟 應改用全域變數 'currentUser'
+  let res = await fetch(`${backend}/api/user_info?username=${currentUser}`).then(r=>r.json());
+  if(res.status === "ok"){
+    userWeight = res.weight;
+    localStorage.setItem("weight", res.weight);  
+  }
+}
+
 // 取得商品資訊
 async function loadProductInfo(){
   try {
+    // 獲取商品和分數配置
     product = await fetch(`${backend}/api/get_product`).then(r => r.json());
+    score = await fetch(`${backend}/api/get_score`).then(r => r.json());
+    
     document.getElementById("product-name").innerText = product.name;
     document.getElementById("product-quantity").innerText = product.total_quantity;
     
-    let sortedBids = [...product.bids].sort((a,b)=>b.score - a.score);
+    const quantity = product.total_quantity;
+    const bids = product.bids || [];
+    
+    // 1. 根據分數排序，找出得標者清單和分數
+    let sortedBids = [...bids].sort((a,b)=>b.score - a.score);
     let seenUsers = new Set();
-    let winners = [];
+    let winnersPrice = []; // 儲存得標者的 price
+    let winnerScores = []; // 儲存得標者的 score
+
     for(let bid of sortedBids){
       if(!seenUsers.has(bid.user_id)){
-        winners.push(bid.bid_price);
+        if (winnersPrice.length < quantity) {
+            winnersPrice.push(bid.bid_price);
+            winnerScores.push(bid.score);
+        }
         seenUsers.add(bid.user_id);
       }
-      if(winners.length >= product.total_quantity) break;
     }
-    document.getElementById("product-min-winner").innerText = winners.length ? Math.min(...winners) : "—";
+    
+    // 3. 計算最低得標分數 (S_min_winner)
+    let minWinningScore = 0;
+    if(quantity > 0 && winnerScores.length === quantity) {
+        // 如果有足夠的得標者，最低得標分數是最後一位得標者（第 quantity 個）的分數
+        minWinningScore = winnerScores[quantity - 1];
+    } else if (quantity > 0 && winnerScores.length > 0) {
+        // 如果得標者不足額度，則取目前所有得標者中的最低分數
+        minWinningScore = Math.min(...winnerScores); 
+    }
 
+    
+    // 4. 計算達到最低得標分數所需出價 $P$ (product-min-score-price)
+    const now = Date.now();
+    
+    // 競標時間間隔 (毫秒)，T_ms >= 0
+    // 🌟 使用毫秒 T
+    const T_ms = Math.max(0, now - (product.start_time || now)); 
+    
+    // 假設用於計算 P_min 的標準權重 W = 1 (請根據實際業務調整 W)
+    const W = 1; 
+
+    let minRequiredPrice = "—";
+
+    if (minWinningScore > 0 && score.A > 0) {
+        const A = score.A;
+        const B = score.B;
+        const C = score.C;
+        
+        // P_min = (S_min - C * W - B / (T_ms + 1)) / A
+        // 🚨 這裡嚴格使用 T_ms (毫秒)
+        const numerator = minWinningScore - (C * W) - (B / (T_ms + 1));
+        let P_min = numerator / A;
+        
+        // 確保 P >= base_price，並向上取整
+        // 價格必須是整數，所以使用 Math.ceil
+        P_min = Math.ceil(Math.max(product.base_price, P_min, 0)); 
+        minRequiredPrice = P_min;
+    }
+
+    // 🌟 新增顯示最低得標分數所需價格的元素
+    document.getElementById("product-min-score-price").innerText = minRequiredPrice;
+
+    // 原始的最低價格要求 (底價)
     document.getElementById("product-min-required").innerText = product.base_price ?? "—";
 
     updateCountdown();
-    loadBidList(); // 同步刷新排行榜
+    // 確保在這裡呼叫 loadBidList() 來刷新排行榜
+    loadBidList(); 
+    
   } catch(e){
     console.error(e);
   }
@@ -373,7 +443,8 @@ function logout(){
 (async function init(){
   await loadProductInfo();
   // 每秒更新倒數時間與排行榜
-  setInterval(()=>{
+  setInterval(async ()=>{
+    refreshUserWeight();
     loadProductInfo();
     updateCountdown();
     loadBidList();
