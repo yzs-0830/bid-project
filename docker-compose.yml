@@ -6,12 +6,13 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # 🌟 注意：在 Docker 內，資料庫的 host 不再是 localhost，而是下方的服務名稱 'db'
-      - DATABASE_URL=postgresql://postgres:0830allan@db:5432/bid_system
+      - DATABASE_URL=postgresql://postgres:password@db:5432/bid_system
+    # 🌟 修改重點 1：依賴設定改為「等待健康檢查通過」
     depends_on:
-      - db
+      db:
+        condition: service_healthy 
     volumes:
-      - .:/app  # 開發模式：讓您改本機程式碼，容器內會同步 (Hot Reload)
+      - .:/app
 
   # 資料庫服務
   db:
@@ -23,9 +24,15 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=bid_system
     ports:
-      - "5432:5432" # 讓您可以從本機的 PgAdmin 連線
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # 🌟 修改重點 2：加入健康檢查指令
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"] # 檢查指令：問 Postgres 你好了沒？
+      interval: 5s   # 每 5 秒問一次
+      timeout: 5s    # 等待回應超時時間
+      retries: 10    # 最多問 10 次 (給它 50秒 的時間初始化)
 
 volumes:
   postgres_data:

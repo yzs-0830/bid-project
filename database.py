@@ -61,5 +61,5 @@ winners_table = sqlalchemy.Table(
 )
 
 # 創建資料表 (首次運行時使用)
-#engine = sqlalchemy.create_engine(DATABASE_URL)
-#metadata.create_all(engine)
+engine = sqlalchemy.create_engine(DATABASE_URL)
+metadata.create_all(engine)

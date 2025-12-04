@@ -3,28 +3,28 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>競價系統</title>
+<title>競價系統 - 用戶端</title>
 <style>
+/* --- 全局變數設定 --- */
 :root {
-  /* 🎨 配色系統 */
   --primary: #2563eb;       /* 主色調：鮮豔藍 */
   --primary-hover: #1d4ed8;
-  --bg: #f1f5f9;            /* 背景：淡藍灰 */
+  --bg: #f8fafc;            /* 背景：更明亮的灰白 */
   --card-bg: #ffffff;       /* 卡片背景：純白 */
-  --text-main: #1e293b;     /* 主文字：深灰 */
+  --text-main: #0f172a;     /* 主文字：深藍灰 */
   --text-muted: #64748b;    /* 次要文字：灰 */
   --border: #e2e8f0;        /* 邊框色 */
   --danger: #ef4444;        /* 警告/登出 */
-  --success: #10b981;       /* 成功/領先 */
-  --accent: #f8fafc;        /* 強調背景 */
+  --success: #10b981;       /* 成功 */
+  --accent: #f1f5f9;        /* 強調背景 */
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --radius: 16px;           /* 圓角大小 */
+  --radius: 12px;           /* 圓角大小 */
 }
 
 * { box-sizing: border-box; }
 
 body {
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   background: var(--bg);
   margin: 0;
   padding: 40px 20px;
@@ -32,12 +32,12 @@ body {
   line-height: 1.5;
 }
 
-/* --- 🌟 側邊欄 (左側固定) --- */
+/* --- 🌟 左側側邊欄 --- */
 .user-sidebar {
   position: fixed;
   top: 40px;
   left: 20px;
-  width: 220px;
+  width: 240px;
   background: var(--card-bg);
   padding: 24px;
   border-radius: var(--radius);
@@ -49,10 +49,15 @@ body {
   gap: 20px;
 }
 
-.user-sidebar .sidebar-header {
+.user-sidebar .sidebar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 15px;
-  margin-bottom: 5px;
+  padding-bottom: 16px;
+}
+.user-sidebar .sidebar-row:last-of-type {
+  border-bottom: none;
 }
 
 .user-sidebar .label {
@@ -60,52 +65,46 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .user-sidebar .value {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-main);
-  margin-top: 4px;
 }
 
 .user-sidebar .value.wins {
-  color: #d97706; /* 琥珀色 */
+  color: #d97706; /* 獎盃金黃色 */
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.user-sidebar button {
+.logout-btn {
   margin-top: auto;
   width: 100%;
-  padding: 10px;
-  background: transparent;
+  padding: 12px;
+  background: white;
   color: var(--danger);
   border: 1px solid var(--danger);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s ease;
 }
+.logout-btn:hover { background: var(--danger); color: white; }
 
-.user-sidebar button:hover {
-  background: var(--danger);
-  color: white;
-}
-
-/* --- 主頁面容器 --- */
+/* --- 主頁面容器 (右移以避開側邊欄) --- */
 .page {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  /* 左邊預留空間給側邊欄 */
-  margin-left: 260px; 
+  margin-left: 280px; /* 留給側邊欄的空間 */
   margin-right: auto;
 }
 
-/* --- 頂部商品資訊 (改為儀表板風格) --- */
+/* --- 上方：商品資訊儀表板 --- */
 .product-dashboard {
   background: var(--card-bg);
   border-radius: var(--radius);
@@ -124,62 +123,115 @@ body {
   padding-bottom: 16px;
 }
 
-.product-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: var(--primary);
-}
+.product-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary); }
 
 .refresh-btn {
   background: var(--accent);
   border: 1px solid var(--border);
   color: var(--text-muted);
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
+  font-weight: 600;
   font-size: 0.85rem;
   transition: all 0.2s;
 }
 .refresh-btn:hover { background: var(--border); color: var(--text-main); }
 
-/* 數據方塊 Grid */
+/* 儀表板 Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
 }
 
 .stat-box {
   background: var(--bg);
-  padding: 12px 16px;
+  padding: 16px;
   border-radius: 12px;
   text-align: center;
+  border: 1px solid transparent;
 }
 
-.stat-box .label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.stat-box .val {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
+.stat-box .label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+.stat-box .val { font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
+.stat-box.highlight { background: #eff6ff; border-color: #dbeafe; }
 .stat-box.highlight .val { color: var(--primary); }
-.stat-box.timer .val { color: var(--danger); font-family: monospace; }
+.stat-box.timer .val { color: var(--danger); font-family: monospace; letter-spacing: 1px; }
 
-/* --- 主內容區 (左右分欄) --- */
+/* --- 下方：主內容區 (左右分欄) --- */
 .main-content {
   display: flex;
   gap: 24px;
   align-items: flex-start;
 }
 
-/* 左欄：出價區 */
+/* 左欄：出價操作 */
 .bid-section {
+  flex: 0 0 340px; /* 固定寬度 */
+  background: var(--card-bg);
+  padding: 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.bid-section h1 { margin: 0 0 20px 0; font-size: 1.25rem; color: var(--text-main); }
+
+.input-group { margin-bottom: 20px; }
+.input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); }
+.input-group input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1.1rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+  background: var(--bg);
+}
+.input-group input:focus { outline: none; border-color: var(--primary); background: white; }
+
+.action-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+  transition: transform 0.1s, background 0.2s;
+}
+.action-btn:hover { background: var(--primary-hover); }
+.action-btn:active { transform: translateY(1px); }
+
+#send_output {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.9rem;
+  min-height: 48px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+
+.my-status-area {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.my-status-area h3 { margin: 0 0 8px 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; }
+#myinfo { font-size: 0.95rem; color: #334155; white-space: pre-wrap; line-height: 1.6; }
+
+
+/* 右欄：排行榜 (完全對齊後台樣式) */
+.ranking-section {
   flex: 1;
   background: var(--card-bg);
   padding: 24px;
@@ -188,179 +240,74 @@ body {
   border: 1px solid var(--border);
 }
 
-.bid-section h1 {
-  margin: 0 0 20px 0;
-  font-size: 1.25rem;
-  color: var(--text-main);
-}
+.ranking-section h2 { margin: 0 0 15px 0; font-size: 1.25rem; color: var(--text-main); }
 
-.input-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.input-group input {
-  width: 100%;
+/* 🔥 Grid 排版設定：與標題列對齊 */
+.ranking-header {
+  display: grid;
+  grid-template-columns: 60px 1fr 100px 80px 100px; /* 排名 | 用戶 | 出價 | 積分 | 時間 */
   padding: 12px 16px;
-  font-size: 1rem;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 16px;
-  transition: border-color 0.2s;
-  background: var(--accent);
-}
-
-.input-group input:focus {
-  outline: none;
-  border-color: var(--primary);
-  background: white;
-}
-
-.action-btn {
-  width: 100%;
-  padding: 14px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-}
-
-.action-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
-.action-btn:active { transform: translateY(1px); }
-
-#send_output {
-  margin-top: 16px;
-  padding: 12px;
+  background: #f1f5f9;
   border-radius: 8px;
-  background: #f0fdf4; /* 淺綠背景 */
-  border: 1px solid #bbf7d0;
-  color: #166534;
+  font-weight: 700;
+  color: #64748b;
   font-size: 0.9rem;
-  min-height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  margin-bottom: 12px;
 }
 
-/* 右欄：排行榜 */
-.ranking-section {
-  flex: 0 0 380px;
-  background: var(--card-bg);
-  padding: 0; /* 內部 padding 由子元素處理 */
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  overflow: hidden; /* 確保圓角 */
-}
-
-.ranking-header-area {
-  padding: 20px 20px 10px 20px;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-}
-
-.ranking-header-area h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--text-main);
-}
-
-.ranking-list {
-  max-height: 350px;
-  overflow-y: auto;
-  padding: 0;
-}
+.ranking-list { max-height: 450px; overflow-y: auto; }
 
 .rank-row {
   display: grid;
-  grid-template-columns: 40px 1fr auto auto; /* 排名, 用戶, 價格, 分數 */
-  gap: 10px;
-  padding: 12px 20px;
+  grid-template-columns: 60px 1fr 100px 80px 100px; /* 必須與 header 一致 */
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   transition: background 0.1s;
 }
-
+.rank-row:hover { background: #f8fafc; }
 .rank-row:last-child { border-bottom: none; }
-.rank-row:hover { background: var(--accent); }
 
+/* 排名徽章 */
 .rank-badge {
-  width: 28px;
-  height: 28px;
-  background: #e2e8f0;
-  color: #64748b;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.8rem;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.8rem; background: #e2e8f0; color: #64748b;
 }
+.rank-row:nth-child(1) .rank-badge { background: #ffd700; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.15); } /* 金 */
+.rank-row:nth-child(2) .rank-badge { background: #c0c0c0; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.15); } /* 銀 */
+.rank-row:nth-child(3) .rank-badge { background: #cd7f32; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.15); } /* 銅 */
 
-/* 前三名顏色 */
-.rank-row:nth-child(1) .rank-badge { background: #fef08a; color: #b45309; } /* 金 */
-.rank-row:nth-child(2) .rank-badge { background: #e2e8f0; color: #475569; } /* 銀 */
-.rank-row:nth-child(3) .rank-badge { background: #fed7aa; color: #c2410c; } /* 銅 */
-
-.rank-user { font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rank-price { color: var(--primary); font-weight: 700; }
-.rank-score { color: var(--text-muted); font-size: 0.85rem; }
-
-/* 用戶狀態區塊 */
-.my-status-area {
-  padding: 15px 20px;
-  background: #eff6ff;
-  border-top: 1px solid #dbeafe;
-}
-.my-status-area h3 { margin: 0 0 8px 0; font-size: 0.9rem; color: var(--primary); }
-#myinfo { font-size: 0.9rem; color: #334155; white-space: pre-wrap; line-height: 1.4; }
+.rank-user { font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-price { font-weight: 700; color: var(--primary); }
+.rank-score { font-weight: 700; color: #d97706; }
+.rank-time { font-size: 0.85rem; color: #94a3b8; }
 
 .refresh-rank-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--bg);
-  border: none;
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
+  width: 100%; margin-top: 15px; padding: 12px;
+  background: var(--bg); border: none; border-radius: 8px;
+  color: var(--text-muted); cursor: pointer; font-weight: 600;
   transition: background 0.2s;
 }
 .refresh-rank-btn:hover { background: #e2e8f0; color: var(--text-main); }
 
-
-/* --- RWD 響應式設計 --- */
+/* --- RWD 響應式 --- */
 @media (max-width: 1100px) {
   .user-sidebar {
-    position: static;
-    width: 100%;
-    margin-bottom: 24px;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+    position: static; width: 100%; margin-bottom: 24px;
+    flex-direction: row; justify-content: space-between; align-items: center;
     padding: 16px 24px;
   }
-  
-  .user-sidebar .sidebar-header { border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: flex; align-items: center; gap: 20px;}
-  .user-sidebar button { width: auto; margin-top: 0; padding: 8px 24px; }
+  .user-sidebar .sidebar-row { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .logout-btn { width: auto; margin-top: 0; padding: 8px 24px; }
   
   .page { margin-left: auto; margin-right: auto; }
 }
 
-@media (max-width: 800px) {
-  .main-content { flex-direction: column; }
-  .ranking-section { width: 100%; flex: auto; }
+@media (max-width: 900px) {
+  .main-content { flex-direction: column-reverse; }
+  .bid-section, .ranking-section { width: 100%; flex: auto; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
@@ -369,22 +316,18 @@ body {
 <body>
 
 <div class="user-sidebar">
-  <div class="sidebar-header">
-    <div>
-      <div class="label">User ID</div>
-      <div class="value" id="disp-username">--</div>
+  <div class="sidebar-row">
+    <div class="label">User ID</div>
+    <div class="value" id="disp-username">--</div>
+  </div>
+  <div class="sidebar-row">
+    <div class="label">Total Wins</div>
+    <div class="value wins">
+      <span>🏆</span>
+      <span id="disp-wins">0</span>
     </div>
   </div>
-  <div class="sidebar-header" style="border-bottom:none; margin-bottom:0;">
-    <div>
-      <div class="label">Total Wins</div>
-      <div class="value wins">
-        <span>🏆</span>
-        <span id="disp-wins">0</span>
-      </div>
-    </div>
-  </div>
-  <button onclick="logout()">登出系統</button>
+  <button class="logout-btn" onclick="logout()">登出系統</button>
 </div>
 
 <div class="page">
@@ -423,28 +366,32 @@ body {
     
     <div class="bid-section">
       <h1>💰 我要出價</h1>
-      <div class="container">
-        <div class="input-group">
-          <label for="inputBid">輸入出價金額</label>
-          <input id="inputBid" type="number" placeholder="例如: 1500" />
-        </div>
-        <button class="action-btn" onclick="sendBid()">送出出價</button>
-        <div id="send_output">準備就緒</div>
+      <div class="input-group">
+        <label for="inputBid">輸入出價金額</label>
+        <input id="inputBid" type="number" placeholder="例如: 1500" />
       </div>
-    </div>
-
-    <div class="ranking-section">
-      <div class="ranking-header-area">
-        <h2>🏆 即時戰況</h2>
-      </div>
-      
-      <div id="ranking" class="ranking-list">
-        <div style="padding:20px; text-align:center; color:#94a3b8;">暫無出價資料</div>
-      </div>
+      <button class="action-btn" onclick="sendBid()">送出出價</button>
+      <div id="send_output">準備就緒</div>
 
       <div class="my-status-area">
         <h3>我的狀態</h3>
         <div id="myinfo">尚未出價</div>
+      </div>
+    </div>
+
+    <div class="ranking-section">
+      <h2>🏆 即時戰況排行榜</h2>
+      
+      <div class="ranking-header">
+        <div>排名</div>
+        <div>用戶</div>
+        <div>出價</div>
+        <div>積分</div>
+        <div>時間</div>
+      </div>
+      
+      <div id="ranking" class="ranking-list">
+        <div style="padding:20px; text-align:center; color:#94a3b8;">暫無出價資料</div>
       </div>
 
       <button class="refresh-rank-btn" onclick="loadBidList()">刷新排行榜</button>
@@ -455,35 +402,27 @@ body {
 
 <script>
 const backend = "http://localhost:8000";
-
-// 🌟 從 localStorage 取得登入使用者
 const currentUser = localStorage.getItem("username");
 let userWeight = Number(localStorage.getItem("weight")) || 0; 
 
+// 檢查登入
 if(!currentUser){
     alert("尚未登入，請先登入");
     window.location.href = "login.html";
 }
 
-// 前端參數
 let product = null;
 let hasNotified = false;
 let lastStartTime = 0;
 
-// 初始化側邊欄顯示
+// 初始化側邊欄
 document.getElementById("disp-username").innerText = currentUser;
 document.getElementById("disp-wins").innerText = userWeight;
 
-// HTML escape
 function escapeHtml(str) {
-  return String(str).replace(/&/g,"&amp;")
-                    .replace(/</g,"&lt;")
-                    .replace(/>/g,"&gt;")
-                    .replace(/"/g,"&quot;")
-                    .replace(/'/g,"&#039;");
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 
-// 更新weight
 async function refreshUserWeight(){
   try {
     let res = await fetch(`${backend}/api/user_info?username=${encodeURIComponent(currentUser)}`).then(r=>r.json());
@@ -492,21 +431,17 @@ async function refreshUserWeight(){
       localStorage.setItem("weight", res.weight);
       document.getElementById("disp-wins").innerText = res.weight;
     }
-  } catch(e) {
-    console.error("更新使用者資訊失敗", e);
-  }
+  } catch(e) {}
 }
 
-// 取得商品資訊
 async function loadProductInfo(){
   try {
     product = await fetch(`${backend}/api/get_product`).then(r => r.json());
-    // 如果需要顯示分數參數，也可以在這裡 fetch score
-    let score = { A:1, B:1, C:1 }; // 預設值，若需要精準計算建議 fetch
-    try {
-        score = await fetch(`${backend}/api/get_score`).then(r => r.json());
-    } catch(e){}
+    // 預設分數參數，正式版建議從後端 fetch
+    let score = { A:3, B:5, C:3 }; 
+    try { score = await fetch(`${backend}/api/get_score`).then(r => r.json()); } catch(e){}
 
+    // 檢查是否新商品
     if (product.start_time !== lastStartTime) {
         hasNotified = false;
         lastStartTime = product.start_time;
@@ -519,20 +454,16 @@ async function loadProductInfo(){
     document.getElementById("product-name").innerText = product.name || "等待中...";
     document.getElementById("product-quantity").innerText = product.total_quantity;
     
-    // 計算邏輯保持不變
+    // --- 計算得標預估價 P_min ---
     const quantity = product.total_quantity;
     const bids = product.bids || [];
+    // 簡單找出目前得標門檻分數
     let sortedBids = [...bids].sort((a,b)=>b.score - a.score);
     let seenUsers = new Set();
-    let winnersPrice = [];
     let winnerScores = [];
-
     for(let bid of sortedBids){
       if(!seenUsers.has(bid.user_id)){
-        if (winnersPrice.length < quantity) {
-            winnersPrice.push(bid.bid_price);
-            winnerScores.push(bid.score);
-        }
+        if (winnerScores.length < quantity) winnerScores.push(bid.score);
         seenUsers.add(bid.user_id);
       }
     }
@@ -545,26 +476,18 @@ async function loadProductInfo(){
     }
     
     let minRequiredPrice = "—";
-
-    // 判斷：如果商品已結算，就不算預估價了
     if (product.settled) {
         minRequiredPrice = "已截止"; 
     } else {
-        // 只有在「未結算」時才計算
         const now = Date.now();
         const T_ms = Math.max(0, now - (product.start_time || now)); 
-        const W_est = 1; // 預估權重
-
+        const W_est = 1; 
         if (minWinningScore > 0 && score.A > 0) {
-            const A = score.A;
-            const B = score.B;
-            const C = score.C;
-            const numerator = minWinningScore - (C * W_est) - (B / (T_ms + 1));
-            let P_min = numerator / A;
+            const numerator = minWinningScore - (score.C * W_est) - (score.B / (T_ms + 1));
+            let P_min = numerator / score.A;
             P_min = Math.ceil(Math.max(product.base_price, P_min, 0)); 
             minRequiredPrice = P_min;
         } else {
-            // 如果還沒人出價，或是分數不夠，顯示底價即可
             minRequiredPrice = product.base_price;
         }
     }
@@ -572,17 +495,13 @@ async function loadProductInfo(){
     document.getElementById("product-min-score-price").innerText = minRequiredPrice;
     document.getElementById("product-min-required").innerText = product.base_price ?? "—";
     
-    // 最高價更新
     const highest = bids.length ? Math.max(...bids.map(b=>b.bid_price)) : 0;
     document.getElementById("product-highest").innerText = highest > 0 ? highest : "—";
 
     updateCountdown();
-  } catch(e){
-    console.error(e);
-  }
+  } catch(e){ console.error(e); }
 }
 
-// 倒數時間
 function updateCountdown(){
   if(!product || !product.start_time || !product.period) return;
   const now = Date.now();
@@ -590,10 +509,20 @@ function updateCountdown(){
   if(remainMs < 0) remainMs = 0;
   const minutes = Math.floor(remainMs / 60000);
   const seconds = Math.floor((remainMs % 60000)/1000);
-  document.getElementById("product-countdown").innerText = `${minutes}:${seconds.toString().padStart(2,'0')}`;
+  document.getElementById("product-countdown").innerText = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+
+  // 更新排行榜中的時間欄位
+  document.querySelectorAll(".rank-row").forEach(row => {
+      const bidTime = Number(row.dataset.bidTime);
+      if(bidTime) {
+          let rem = Math.max(product.period - (bidTime - product.start_time), 0);
+          const m = Math.floor(rem / 60000);
+          const s = Math.floor((rem % 60000) / 1000);
+          row.querySelector(".rank-time").textContent = `${m}分${s}秒`;
+      }
+  });
 }
 
-// 排行榜更新
 async function loadBidList(){
   if(!product) await loadProductInfo();
   try {
@@ -608,26 +537,24 @@ async function loadBidList(){
         ranking.forEach((item, idx)=>{
           const row = document.createElement("div");
           row.className = "rank-row";
-          row.dataset.user = item.user_id;
+          row.dataset.bidTime = item.timestamp;
+          
           const displayScore = Number(item.score).toFixed(2);
           
           row.innerHTML = `
-            <div class="rank-badge">${idx+1}</div>
+            <div><span class="rank-badge">${idx+1}</span></div>
             <div class="rank-user" title="${escapeHtml(item.user_id)}">${escapeHtml(item.user_id)}</div>
             <div class="rank-price">$${item.bid_price}</div>
             <div class="rank-score">${displayScore}</div>
+            <div class="rank-time">--:--</div> 
           `;
           rankDiv.appendChild(row);
         });
     }
-
     await updateMyInfo();
-  } catch(err){
-    console.error(err);
-  }
+  } catch(err){ console.error(err); }
 }
 
-// 我的出價資訊
 async function updateMyInfo(){
   try{
     const res = await fetch(`${backend}/api/get_bid_price?user_id=${encodeURIComponent(currentUser)}`);
@@ -635,56 +562,43 @@ async function updateMyInfo(){
 
     let info = "";
     if(data.message){
-      // 未出價
       if(product && !product.settled) info = "尚未出價";
       else info = data.message;
     } else {
       info = `最高出價：$${data.highest_bid}\n競標積分：${Number(data.score).toFixed(2)}`;
     }
 
+    // 結算狀態檢查
     if(product && product.settled && Array.isArray(product.winner)){
       const isWinner = product.winner.includes(currentUser);
-
       if(isWinner){
         info += "\n🎉 恭喜！你得標了！";
-      } else {
-        info += "\n😭 很遺憾，本次未得標";
+      } else if(product.start_time > 0) {
+        info += "\n很遺憾，本次未得標";
       }
 
       if (!hasNotified) {
         if(isWinner){
           alert("🎉 恭喜！你已經成功得標！");
-        } else {
-          alert("😭 比賽結束，很遺憾本次未得標。\n再接再厲！");
+        } else if(product.start_time > 0){
+          alert("競標結束，很遺憾本次未得標。");
         }
         hasNotified = true; 
       }
-    } else if (product && !product.settled) {
-       // 競標中
     } else {
       hasNotified = false;
     }
-
     document.getElementById("myinfo").innerText = info;
-  } catch(err){
-    // error
-  }
+  } catch(err){}
 }
 
-// 送出出價
 async function sendBid(){
   const inputEl = document.getElementById("inputBid");
   const v = inputEl.value;
   if(!v && v!==0){ alert("請輸入數字！"); return; }
   
-  if(product && product.settled){
-    alert("本商品已結束，無法出價！");
-    return;
-  }
-  if(product && Number(v) < product.base_price){
-    alert("低於最低價格!");
-    return;
-  }
+  if(product && product.settled){ alert("本商品已結束，無法出價！"); return; }
+  if(product && Number(v) < product.base_price){ alert("低於最低價格!"); return; }
 
   try{
     const res = await fetch(`${backend}/api/bid`, {
@@ -697,11 +611,10 @@ async function sendBid(){
         alert(data.message);
     } else {
         document.getElementById("send_output").innerText = "✅ 出價成功：$"+data.bid_price+" (積分:"+Number(data.score).toFixed(1)+")";
-        inputEl.value = ""; // 清空輸入框
+        inputEl.value = ""; // 清空
         await loadBidList();
     }
   } catch(err){
-    console.error(err);
     document.getElementById("send_output").innerText = "❌ 送出失敗，請檢查後端";
   }
 }
@@ -717,7 +630,6 @@ function logout(){
 (async function init(){
   await refreshUserWeight();
   await loadProductInfo();
-  
   setInterval(async ()=>{
     refreshUserWeight();
     loadProductInfo();
