@@ -1,0 +1,31 @@
+services:
+  # 您的後端服務
+  backend:
+    build: .
+    container_name: bid-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # 🌟 注意：在 Docker 內，資料庫的 host 不再是 localhost，而是下方的服務名稱 'db'
+      - DATABASE_URL=postgresql://postgres:0830allan@db:5432/bid_system
+    depends_on:
+      - db
+    volumes:
+      - .:/app  # 開發模式：讓您改本機程式碼，容器內會同步 (Hot Reload)
+
+  # 資料庫服務
+  db:
+    image: postgres:15-alpine
+    container_name: bid-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=bid_system
+    ports:
+      - "5432:5432" # 讓您可以從本機的 PgAdmin 連線
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
