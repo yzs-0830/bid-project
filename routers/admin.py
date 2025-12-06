@@ -2,7 +2,10 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import time
 import sqlalchemy
-from database import database, products_table, bids_table
+from database import database, products_table
+
+# bids_table 在這裡已經不需要了，因為我們不再刪除舊紀錄
+# from database import bids_table 
 
 router = APIRouter()
 
@@ -21,9 +24,16 @@ class ScoreConfig(BaseModel):
 # 輔助函式
 # --------------------------
 
-async def get_current_product_config():
-    """從資料庫獲取當前商品的詳細配置 (假設 ID=1)"""
-    query = sqlalchemy.select(products_table).where(products_table.c.product_id == 1)
+async def get_latest_product_config():
+    """
+    從資料庫獲取「最新」商品的詳細配置
+    邏輯：依 product_id 倒序排列 (DESC)，取第 1 筆
+    """
+    query = (
+        sqlalchemy.select(products_table)
+        .order_by(products_table.c.product_id.desc())
+        .limit(1)
+    )
     record = await database.fetch_one(query)
     return dict(record) if record else None
 
@@ -45,65 +55,53 @@ async def set_product(cfg: ProductConfig):
         "start_time": current_time,
         "period": period_ms,
         "settled": False,
-        # winner 欄位在 SQL 中比較複雜，這裡先不處理，結算時再更新
+        # 給定預設參數，防止管理員忘記設定分數時系統出錯
+        "alpha": 3.0,
+        "beta": 5.0,
+        "gamma": 3.0
     }
 
     async with database.transaction():
-        # 2. 清空舊的出價紀錄 (模擬 product["bids"] = [])
-        # ⚠️ 注意：因為我們是單商品系統，上架新商品時應清除舊出價
-        await database.execute(bids_table.delete())
+        # ⚠️ 修正 1: 移除 bids_table.delete()，保留歷史紀錄
+        
+        # ⚠️ 修正 2: 改為純 INSERT，讓 DB 自動生成新的 product_id
+        insert_query = products_table.insert().values(**values)
+        await database.execute(insert_query)
 
-        # 3. 更新或新增商品 (Upsert product_id=1)
-        # 檢查是否存在
-        query = sqlalchemy.select(products_table).where(products_table.c.product_id == 1)
-        exists = await database.fetch_one(query)
-
-        if exists:
-            # Update
-            update_query = (
-                sqlalchemy.update(products_table)
-                .where(products_table.c.product_id == 1)
-                .values(**values)
-            )
-            await database.execute(update_query)
-        else:
-            # Insert (強制 product_id=1)
-            insert_query = products_table.insert().values(product_id=1, **values)
-            await database.execute(insert_query)
-
-    # 4. 回傳最新配置
-    updated_product = await get_current_product_config()
+    # 2. 回傳最新配置 (確認是否成功寫入)
+    updated_product = await get_latest_product_config()
     
     # 為了保持前端相容性，手動加入 bids: []
-    updated_product["bids"] = []
+    if updated_product:
+        updated_product["bids"] = []
     
     return {"status": "ok", "product": updated_product}
 
 
 @router.post("/set_score")
 async def set_score(cfg: ScoreConfig):
-    # 更新 product_id=1 的 alpha, beta, gamma
+    # 更新「最新」商品的 alpha, beta, gamma
+    
+    # 1. 先找出最新商品的 ID
+    latest_product = await get_latest_product_config()
+    
+    if not latest_product:
+        return {"status": "fail", "message": "請先上架商品後再設定分數"}
+
+    target_id = latest_product["product_id"]
+
+    # 2. 更新該商品的參數
     values = {
         "alpha": cfg.A,
         "beta": cfg.B,
         "gamma": cfg.C
     }
 
-    # 檢查商品是否存在
-    query = sqlalchemy.select(products_table).where(products_table.c.product_id == 1)
-    exists = await database.fetch_one(query)
-
-    if exists:
-        update_query = (
-            sqlalchemy.update(products_table)
-            .where(products_table.c.product_id == 1)
-            .values(**values)
-        )
-        await database.execute(update_query)
+    update_query = (
+        sqlalchemy.update(products_table)
+        .where(products_table.c.product_id == target_id)
+        .values(**values)
+    )
+    await database.execute(update_query)
         
-        # 回傳更新後的權重
-        return {"status": "ok", "score": {"A": cfg.A, "B": cfg.B, "C": cfg.C}}
-    else:
-        # 如果商品還沒建立，可能無法設定分數 (視邏輯而定)
-        # 這裡選擇先建立一個預設商品或報錯，簡單起見回傳失敗
-        return {"status": "fail", "message": "請先上架商品後再設定分數"}
+    return {"status": "ok", "score": {"A": cfg.A, "B": cfg.B, "C": cfg.C}}

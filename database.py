@@ -1,18 +1,24 @@
 # database.py 
 import databases
 import sqlalchemy
-import os # 🌟 新增
+import os
+from redis import asyncio as aioredis
 
-# 🌟 修改這裡：優先讀取環境變數中的 DATABASE_URL，如果沒有才用 localhost (本機開發用)
-# Docker Compose 會自動傳入環境變數，所以會連到 'db'
+# --------------------------
+# 1. PostgreSQL 設定
+# --------------------------
+
+# 優先讀取環境變數 (Docker 用)，如果讀不到才用預設值 (本機開發用)
 DEFAULT_URL = "postgresql://postgres:0830allan@localhost:5432/bid_system"
 DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_URL)
 
 database = databases.Database(DATABASE_URL)
 metadata = sqlalchemy.MetaData()
 
-# ⚠️ 這裡我們只定義會員表和商品表，出價 Bid 建議用 Redis 處理即時性
-#
+# --------------------------
+# 2. 資料表定義
+# --------------------------
+
 # 會員表 (Members Table)
 members_table = sqlalchemy.Table(
     "members",
@@ -31,24 +37,16 @@ products_table = sqlalchemy.Table(
     sqlalchemy.Column("base_price", sqlalchemy.Float),
     sqlalchemy.Column("total_quantity", sqlalchemy.Integer), # 庫存 K
     sqlalchemy.Column("duration_minutes", sqlalchemy.Integer),
-    sqlalchemy.Column("alpha", sqlalchemy.Float, default=3), # 積分權重 α
-    sqlalchemy.Column("beta", sqlalchemy.Float, default=5),  # 積分權重 β
-    sqlalchemy.Column("gamma", sqlalchemy.Float, default=3), # 積分權重 γ
+    sqlalchemy.Column("alpha", sqlalchemy.Float, default=1), # 積分權重 α
+    sqlalchemy.Column("beta", sqlalchemy.Float, default=0),  # 積分權重 β
+    sqlalchemy.Column("gamma", sqlalchemy.Float, default=0), # 積分權重 γ
     sqlalchemy.Column("start_time", sqlalchemy.BigInteger, default=0), # 毫秒時間戳記
     sqlalchemy.Column("period", sqlalchemy.BigInteger, default=0),     # 毫秒持續時間
     sqlalchemy.Column("settled", sqlalchemy.Boolean, default=False),
 )
 
-bids_table = sqlalchemy.Table(
-    "bids",
-    metadata,
-    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True, autoincrement=True),
-    sqlalchemy.Column("user_id", sqlalchemy.String),
-    sqlalchemy.Column("bid_price", sqlalchemy.Integer),
-    sqlalchemy.Column("score", sqlalchemy.Float),
-    sqlalchemy.Column("timestamp", sqlalchemy.BigInteger),
-)
 
+# 得標紀錄表 (Winners Table)
 winners_table = sqlalchemy.Table(
     "winners",
     metadata,
@@ -60,6 +58,31 @@ winners_table = sqlalchemy.Table(
     sqlalchemy.Column("settled_time", sqlalchemy.BigInteger), # 結算時間
 )
 
-# 創建資料表 (首次運行時使用)
-engine = sqlalchemy.create_engine(DATABASE_URL)
-metadata.create_all(engine)
+# --------------------------
+# 3. 建表工具函式
+# --------------------------
+def create_db_tables():
+    """建立所有資料表 (請手動執行此檔案)"""
+    print(f"Connecting to database at: {DATABASE_URL}...")
+    try:
+        engine = sqlalchemy.create_engine(DATABASE_URL)
+        metadata.create_all(engine)
+        print("✅ 資料表創建成功！(members, products, bids, winners)")
+    except Exception as e:
+        print(f"❌ 資料表創建失敗: {e}")
+
+# 只有當直接執行 `python database.py` 時才會建立資料表
+# 避免被 import 時意外執行
+if __name__ == "__main__":
+    create_db_tables()
+
+# --------------------------
+# 4. Redis 設定
+# --------------------------
+
+# 讀取環境變數 REDIS_URL (來自 docker-compose.yml)
+# 若無環境變數，預設連線到本機 Redis
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# 建立非同步 Redis 連線池
+redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)

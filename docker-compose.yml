@@ -7,7 +7,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/bid_system
-    # 🌟 修改重點 1：依賴設定改為「等待健康檢查通過」
+      - REDIS_URL=redis://host.docker.internal:6379/0
     depends_on:
       db:
         condition: service_healthy 

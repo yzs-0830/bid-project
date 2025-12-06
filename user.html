@@ -523,34 +523,72 @@ function updateCountdown(){
   });
 }
 
+// 排行榜更新 (防閃爍版本)
 async function loadBidList(){
   if(!product) await loadProductInfo();
   try {
     const res = await fetch(`${backend}/api/bid_list`);
     const ranking = await res.json();
     const rankDiv = document.getElementById("ranking");
-    rankDiv.innerHTML = ""; 
 
+    // 1. 處理無資料狀態
     if(ranking.length === 0) {
          rankDiv.innerHTML = `<div style="padding:20px; text-align:center; color:#94a3b8;">暫無出價資料</div>`;
-    } else {
-        ranking.forEach((item, idx)=>{
-          const row = document.createElement("div");
-          row.className = "rank-row";
-          row.dataset.bidTime = item.timestamp;
-          
-          const displayScore = Number(item.score).toFixed(2);
-          
-          row.innerHTML = `
-            <div><span class="rank-badge">${idx+1}</span></div>
-            <div class="rank-user" title="${escapeHtml(item.user_id)}">${escapeHtml(item.user_id)}</div>
-            <div class="rank-price">$${item.bid_price}</div>
-            <div class="rank-score">${displayScore}</div>
-            <div class="rank-time">--:--</div> 
-          `;
-          rankDiv.appendChild(row);
-        });
+         return;
     }
+    // 若之前顯示"暫無資料"，先清空
+    if(rankDiv.innerText.includes("暫無出價資料")) rankDiv.innerHTML = "";
+
+    // 2. 遍歷資料並更新
+    ranking.forEach((item, idx)=>{
+      let row = rankDiv.children[idx]; // 嘗試獲取現有格子
+      const displayScore = Number(item.score).toFixed(2);
+      
+      // 計算初始時間字串 (避免剛載入顯示 --:--)
+      let timeStr = "--:--";
+      if(product && item.timestamp){
+          let rem = Math.max(product.period - (item.timestamp - product.start_time), 0);
+          const m = Math.floor(rem / 60000);
+          const s = Math.floor((rem % 60000) / 1000);
+          timeStr = `${m}分${s}秒`;
+      }
+
+      if (row) {
+        // [情況 A] 格子已存在 -> 直接修改文字 (防閃爍關鍵 🔥)
+        row.dataset.bidTime = item.timestamp;
+        
+        // 只有內容變動才更新，提升效能
+        const elUser = row.querySelector('.rank-user');
+        const elPrice = row.querySelector('.rank-price');
+        const elScore = row.querySelector('.rank-score');
+
+        if(elUser.innerText !== item.user_id) elUser.innerText = item.user_id;
+        if(elPrice.innerText !== `$${item.bid_price}`) elPrice.innerText = `$${item.bid_price}`;
+        if(elScore.innerText !== displayScore) elScore.innerText = displayScore;
+        // 時間欄位由 updateCountdown 統一處理，這裡不更動
+        
+      } else {
+        // [情況 B] 格子不存在 -> 建立新元素
+        row = document.createElement("div");
+        row.className = "rank-row";
+        row.dataset.bidTime = item.timestamp;
+        
+        row.innerHTML = `
+          <div><span class="rank-badge">${idx+1}</span></div>
+          <div class="rank-user" title="${escapeHtml(item.user_id)}">${escapeHtml(item.user_id)}</div>
+          <div class="rank-price">$${item.bid_price}</div>
+          <div class="rank-score">${displayScore}</div>
+          <div class="rank-time">${timeStr}</div> 
+        `;
+        rankDiv.appendChild(row);
+      }
+    });
+
+    // 3. 清理多餘的格子 (例如排名人數變少時)
+    while (rankDiv.children.length > ranking.length) {
+      rankDiv.removeChild(rankDiv.lastChild);
+    }
+
     await updateMyInfo();
   } catch(err){ console.error(err); }
 }
