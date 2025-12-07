@@ -1,38 +1,14 @@
 services:
-  # 您的後端服務
   backend:
     build: .
     container_name: bid-backend
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:0830allan@db:5432/bid_system
-      - REDIS_URL=redis://host.docker.internal:6379/0
-    depends_on:
-      db:
-        condition: service_healthy 
-    volumes:
-      - .:/app
-
-  # 資料庫服務
-  db:
-    image: postgres:15-alpine
-    container_name: bid-db
     restart: always
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=0830allan
-      - POSTGRES_DB=bid_system
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # 🌟 修改重點 2：加入健康檢查指令
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"] # 檢查指令：問 Postgres 你好了沒？
-      interval: 5s   # 每 5 秒問一次
-      timeout: 5s    # 等待回應超時時間
-      retries: 10    # 最多問 10 次 (給它 50秒 的時間初始化)
-
-volumes:
-  postgres_data:
+      # 👇 確保是 AWS RDS 的網址
+      - DATABASE_URL=postgresql://postgres:0830allan@database-1.c8bwi0kmyu9k.us-east-1.rds.amazonaws.com:5432/postgres
+      
+      # 👇 確保是 AWS Valkey 的網址 (Serverless 要用 rediss://)
+      - REDIS_URL=rediss://bid-redis-mq2mra.serverless.use1.cache.amazonaws.com:6379
+     
