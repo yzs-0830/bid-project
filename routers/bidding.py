@@ -58,8 +58,8 @@ async def settle_product_logic(product_id: int, total_quantity: int):
             return
 
         # B. 🌟 從 Redis Sorted Set 取出前 K 名贏家
-        ranking_key = f"bid_ranking:{product_id}"
-        details_hash_key = f"bid_details:{product_id}"
+        ranking_key = f"{{bid:{product_id}}}:ranking"
+        details_hash_key = f"{{bid:{product_id}}}:details"
         
         # ZREVRANGE: 分數由高到低，取前 total_quantity 名 (含分數)
         top_users_with_scores = await redis_client.zrevrange(ranking_key, 0, total_quantity - 1, withscores=True)
@@ -143,8 +143,8 @@ async def bid(value: BidModel):
     )
 
     # 4. 🌟 寫入 Redis (取代 SQL INSERT)
-    ranking_key = f"bid_ranking:{product['product_id']}"
-    details_hash_key = f"bid_details:{product['product_id']}"
+    ranking_key = f"{{bid:{product['product_id']}}}:ranking"
+    details_hash_key = f"{{bid:{product['product_id']}}}:details"
     
     # Pipeline 原子性寫入
     async with redis_client.pipeline(transaction=True) as pipe:
@@ -176,8 +176,8 @@ async def bid_list():
     if not product: return []
     
     # 1. 從 Redis ZSET 撈取前 K 名
-    ranking_key = f"bid_ranking:{product['product_id']}"
-    details_hash_key = f"bid_details:{product['product_id']}"
+    ranking_key = f"{{bid:{product['product_id']}}}:ranking"
+    details_hash_key = f"{{bid:{product['product_id']}}}:details"
     
     top_users = await redis_client.zrevrange(ranking_key, 0, product["total_quantity"] - 1, withscores=True)
     
@@ -210,8 +210,8 @@ async def get_bid_price(user_id: str = Query(...)):
     latest_prod = await get_current_product()
     pid = latest_prod['product_id'] if latest_prod else 1
     
-    ranking_key = f"bid_ranking:{pid}"
-    details_hash_key = f"bid_details:{pid}"
+    ranking_key = f"{{bid:{pid}}}:ranking"
+    details_hash_key = f"{{bid:{pid}}}:details"
     
     # 1. 查分數
     score = await redis_client.zscore(ranking_key, user_id)
