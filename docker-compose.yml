@@ -6,8 +6,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/bid_system
-      - REDIS_URL=redis://host.docker.internal:6379/0
+      - DATABASE_URL=postgresql://postgres:0830allan@bid-database.c8bwi0kmyu9k.us-east-1.rds.amazonaws.com:5432/postgres
+      - REDIS_URL=rediss://bid-redis-mq2mra.serverless.use1.cache.amazonaws.com:6379
     depends_on:
       db:
         condition: service_healthy 
