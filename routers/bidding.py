@@ -23,8 +23,7 @@ def burn_cpu():
     因為 Redis 太快了，不加這個 ASG 不會擴展。
     """
     x = 0
-    # 建議值：50萬 ~ 100萬 (視 t2.micro 狀況調整)
-    for i in range(500000): 
+    for i in range(10000): 
         x += i * i
     return x
 
