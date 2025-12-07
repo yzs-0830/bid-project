@@ -2,10 +2,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import time
 import sqlalchemy
-from database import database, products_table
-
-# bids_table 在這裡已經不需要了，因為我們不再刪除舊紀錄
-# from database import bids_table 
+# 🌟 修改 1: 記得引入 redis_client
+from database import database, products_table, redis_client
 
 router = APIRouter()
 
@@ -55,23 +53,27 @@ async def set_product(cfg: ProductConfig):
         "start_time": current_time,
         "period": period_ms,
         "settled": False,
-        # 給定預設參數，防止管理員忘記設定分數時系統出錯
         "alpha": 3.0,
         "beta": 5.0,
         "gamma": 3.0
     }
 
     async with database.transaction():
-        # ⚠️ 修正 1: 移除 bids_table.delete()，保留歷史紀錄
-        
-        # ⚠️ 修正 2: 改為純 INSERT，讓 DB 自動生成新的 product_id
+        # 純 INSERT，讓 DB 自動生成新的 product_id
         insert_query = products_table.insert().values(**values)
         await database.execute(insert_query)
 
-    # 2. 回傳最新配置 (確認是否成功寫入)
+    # ---------------------------------------------------------
+    # 🔥 修改 2: 強制清除 Redis 的舊商品快取
+    # ---------------------------------------------------------
+    # 因為 bidding.py 裡的 get_current_product 有 1 小時快取，
+    # 這裡必須刪除，讓系統下次讀取時被迫去抓這裡剛寫入的新商品。
+    await redis_client.delete("system:current_product")
+    print(f"🧹 [Admin] 舊快取已清除，新商品 {cfg.name} 上架中...")
+
+    # 2. 回傳最新配置
     updated_product = await get_latest_product_config()
     
-    # 為了保持前端相容性，手動加入 bids: []
     if updated_product:
         updated_product["bids"] = []
     
@@ -103,5 +105,12 @@ async def set_score(cfg: ScoreConfig):
         .values(**values)
     )
     await database.execute(update_query)
+
+    # ---------------------------------------------------------
+    # 🔥 修改 3: 修改分數也要清除快取
+    # ---------------------------------------------------------
+    # 不然前端顯示的預估價公式會用舊係數算，導致顯示錯誤
+    await redis_client.delete("system:current_product")
+    print(f"🧹 [Admin] 舊快取已清除，新分數參數已套用: {values}")
         
     return {"status": "ok", "score": {"A": cfg.A, "B": cfg.B, "C": cfg.C}}

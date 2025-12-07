@@ -1,35 +1,46 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import database, members_table, products_table 
 
+# 引入資料庫實例
+# (注意：members_table, products_table 在這裡用不到，可以不用 import，保持乾淨)
+from database import database 
+
+# 引入您的路由模組
 from routers import bidding, admin, users 
 
-
-# 🌟 處理應用程式生命週期 (替代已棄用的 @app.on_event)
+# 🌟 核心：應用程式生命週期管理
+# 這一段就是解決 "DatabaseBackend is not running" 的救星！
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 啟動時連接資料庫
-    print("Database connecting...")
+    # --- 啟動區 (Startup) ---
+    print("🚀 系統啟動中...")
+    print("🔗 正在嘗試連接資料庫 (PostgreSQL)...")
     try:
         await database.connect()
-        print("Database connected successfully!")
+        print("✅ 資料庫連接成功！ (Database connected)")
     except Exception as e:
-        print(f"Database connection failed: {e}")
+        print(f"❌ 資料庫連接失敗: {e}")
     
-    # yield 之後應用程式開始處理請求
+    # --- 應用程式運作中 ---
     yield 
 
-    # 關閉時斷開連接
-    print("Database disconnecting...")
+    # --- 關閉區 (Shutdown) ---
+    print("🛑 系統關閉中...")
+    print("🔌 正在斷開資料庫連接...")
     await database.disconnect()
-    print("Database disconnected!")
+    print("👋 資料庫連接已斷開！")
 
 
-# 🌟 將 lifespan 傳給 FastAPI 實例
-app = FastAPI(lifespan=lifespan)
+# 🌟 建立 FastAPI 實例，並載入生命週期
+app = FastAPI(
+    title="Bid System API",
+    description="高併發競標系統後端",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
-
+# 設定 CORS (允許跨域請求，這對前端很重要)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,6 +48,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(bidding.router, prefix="/api")
-app.include_router(admin.router,  prefix="/admin")
-app.include_router(users.router,  prefix="/user")
+# 🌟 註冊路由
+# 這樣您的 reset_all_data 就會變成: POST /api/reset_all_data
+app.include_router(bidding.router, prefix="/api", tags=["Bidding"])
+app.include_router(admin.router,  prefix="/admin", tags=["Admin"])
+app.include_router(users.router,  prefix="/user", tags=["User"])
+
+# 測試用：根路徑
+@app.get("/")
+async def root():
+    return {"message": "Hello! Bid System is running correctly! 🚀"}
