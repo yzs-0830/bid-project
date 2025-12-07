@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:0830allan@bdatabase-1.c8bwi0kmyu9k.us-east-1.rds.amazonaws.com:5432/postgres
+      - DATABASE_URL=postgresql://postgres:0830allan@database-1.c8bwi0kmyu9k.us-east-1.rds.amazonaws.com:5432/postgres
       - REDIS_URL=rediss://bid-redis-mq2mra.serverless.use1.cache.amazonaws.com:6379
     depends_on:
       db:
