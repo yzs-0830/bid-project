@@ -9,14 +9,12 @@ from database import database, members_table, products_table, winners_table, red
 
 router = APIRouter()
 
-# 定義請求模型
+# 定義bid模型
 class BidModel(BaseModel):
     user_id: str
     bid_price: int
 
-# --------------------------
-# 🔥 核心優化 1: 燒機程式 (為了觸發 Auto Scaling)
-# --------------------------
+# 燒機程式 (為了觸發 Auto Scaling)
 def burn_cpu():
     """
     純消耗 CPU 運算，強迫負載升高。
@@ -26,6 +24,7 @@ def burn_cpu():
     for i in range(10000): 
         x += i * i
     return x
+
 
 # --------------------------
 # 輔助函式
@@ -37,7 +36,7 @@ def calc_score(P, T, W, alpha, beta, gamma):
 
 async def get_current_product():
     """
-    🔥 核心優化 2: 商品資訊快取 (Lazy Loading)
+    商品資訊快取 (Lazy Loading)
     邏輯：先查 Redis -> 沒有才查 SQL -> 寫入 Redis (1小時)
     """
     cache_key = "system:current_product"
@@ -82,7 +81,7 @@ async def get_current_product():
 
 async def get_user_weight(user_id: str):
     """
-    🔥 核心優化 3: 用戶權重快取
+    用戶權重快取
     邏輯：先查 Redis -> 沒有才查 SQL -> 寫入 Redis
     """
     user_key = f"user:{user_id}"
@@ -146,8 +145,7 @@ async def settle_product_logic(product_id: int, total_quantity: int):
                     .values(wins=new_wins, weight=new_wins)
                 )
                 
-                # 🔥🔥🔥 修正點 1: 這裡必須同步更新 Redis！
-                # 不然前端/API 從 Redis 拿到的權重永遠是舊的 (0)
+                # 同步更新 Redis
                 await redis_client.hset(f"user:{user_id}", "weight", new_wins)
                 print(f"✅ 用戶 {user_id} 權重已更新為 {new_wins}")
 
@@ -193,15 +191,15 @@ async def settle_product_logic(product_id: int, total_quantity: int):
 
 @router.post("/bid")
 async def bid(value: BidModel):
-    # 🔥 1. 燒機 (AWS Demo 必要！)
-    burn_cpu()
+    # 1. 燒機 (僅Demo使用)
+    # burn_cpu()
 
-    # 🔥 2. 獲取商品 (改為讀 Redis，不查 SQL)
+    # 2. 獲取商品 (改為讀 Redis，不查 SQL)
     product = await get_current_product()
     if not product: return {"status": "fail", "message": "無商品"}
     if product["settled"]: return {"status": "fail", "message": "已結算"}
 
-    # 🔥 3. 獲取權重 (改為讀 Redis，不查 SQL)
+    # 3. 獲取權重 (改為讀 Redis，不查 SQL)
     W = await get_user_weight(value.user_id)
 
     # 4. 計算分數
@@ -293,13 +291,6 @@ async def get_product_api():
         # 重新讀取 (這時 Redis 裡的 settled 應該已經變成 True 了)
         product = await get_current_product() 
         product_dict = dict(product)
-
-    # -----------------------------------------------------------
-    # 🔥🔥🔥 修正點 2: 贏家名單必須從 SQL 拿！
-    # -----------------------------------------------------------
-    # Redis 裡面的 product_dict 沒有 winner 欄位 (或不準)。
-    # 如果已結算，我們必須去 SQL 的 winners_table 查出名單，
-    # 然後塞進回傳給前端的 JSON 裡。
     
     winners_list = []
     if product_dict.get("settled"):
@@ -338,7 +329,7 @@ async def get_bid_price(user_id: str = Query(...)):
 
 @router.post("/reset_all_data")
 async def reset_all_data():
-    """本地測試神器：一鍵重置所有資料"""
+    """一鍵重置所有資料"""
     try:
         await redis_client.flushall()
         async with database.transaction():

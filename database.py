@@ -72,7 +72,6 @@ def create_db_tables():
         print(f"❌ 資料表創建失敗: {e}")
 
 # 只有當直接執行 `python database.py` 時才會建立資料表
-# 避免被 import 時意外執行
 if __name__ == "__main__":
     create_db_tables()
 

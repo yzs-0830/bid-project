@@ -2,15 +2,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# 引入資料庫實例
-# (注意：members_table, products_table 在這裡用不到，可以不用 import，保持乾淨)
+# 引入資料庫
 from database import database 
 
 # 引入您的路由模組
 from routers import bidding, admin, users 
 
-# 🌟 核心：應用程式生命週期管理
-# 這一段就是解決 "DatabaseBackend is not running" 的救星！
+# 應用程式生命週期管理
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- 啟動區 (Startup) ---
@@ -48,8 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🌟 註冊路由
-# 這樣您的 reset_all_data 就會變成: POST /api/reset_all_data
+# 註冊路由
 app.include_router(bidding.router, prefix="/api", tags=["Bidding"])
 app.include_router(admin.router,  prefix="/admin", tags=["Admin"])
 app.include_router(users.router,  prefix="/user", tags=["User"])
