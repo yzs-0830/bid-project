@@ -90,6 +90,27 @@ Dockerfile, docker-compose.yml, .env.example
 | GET | `/api/user_info` | A user's weight |
 | POST | `/api/reset_all_data` | Demo only: wipes Redis and all tables |
 
+## Load Test Results
+
+Load-tested against the AWS deployment (ALB + Auto Scaling Group + RDS + ElastiCache/Valkey) with Locust. Full course presentation (Chinese): `docs/Group7.pdf`.
+
+**Setup**
+
+* Auto Scaling Group: starts at 1 instance, max 3; scale-out when average CPU > 30%.
+* Locust simulated 2,400 users for about 10 minutes against `POST /api/bid`.
+* To demonstrate Auto Scaling, the demo run added a meaningless CPU computation to every bid (`burn_cpu()`), so CPU load was artificially inflated. Throughput figures therefore reflect this heavier per-request cost, not the plain service.
+
+**Results (100-second window at 3 instances, ramping from about 600 to 900+ RPS)**
+
+| Metric | Value |
+| --- | --- |
+| Average throughput | 689.11 RPS |
+| Requests in window | 68,911 |
+| Failures in window | 3 (>99.99% success) |
+| Average response time | 294.5 ms |
+
+The window is the difference between two Locust snapshots (160,267 and 229,178 cumulative requests); the average response time is derived as (941.96 x 229,178 - 1,220.35 x 160,267) / 68,911. Cumulative failures over the whole run were 13,097 of 229,178 requests, almost all occurring before scale-out completed (13,094 at the first snapshot). The highest `Current RPS` shown in the screenshots is 914.1.
+
 ## Notes
 
 * This is a course project. Parameters such as the default score weights and cache TTLs are fixed values from the assignment.
