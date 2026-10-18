@@ -1,0 +1,11 @@
+services:
+  backend:
+    build: .
+    container_name: bid-backend
+    ports:
+      - "8000:8000"
+    restart: always
+    # Connection strings are read from .env (see .env.example); never commit real values.
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}

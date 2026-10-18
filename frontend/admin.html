@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理員後台</title>
+
+  <style>
+    :root {
+      --primary: #4267ff;
+      --primary-hover: #2f4de0;
+      --bg: #f4f6fb;
+      --card-bg: #ffffff;
+      --text: #333;
+      --border: #e0e0e0;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 30px;
+      color: var(--text);
+    }
+
+    h1 { text-align: center; margin-bottom: 30px; color: #2c3e50; }
+
+    .layout {
+      display: flex;
+      gap: 25px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    /* 左側面板樣式 */
+    .left-panel {
+      background: var(--card-bg);
+      flex: 0 0 350px; /* 固定寬度 */
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      height: fit-content;
+    }
+
+    /* 右側面板容器 (包含上下兩個區塊) */
+    .right-panel-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .info-card, .ranking-card {
+      background: var(--card-bg);
+      padding: 20px 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    h2 { margin-top: 0; color: #444; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; font-size: 1.2rem; }
+
+    /* 表單樣式 */
+    label { font-weight: 600; display: block; margin-top: 15px; font-size: 0.95rem; }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-top: 6px;
+      box-sizing: border-box;
+      transition: border 0.2s;
+    }
+    input:focus { border-color: var(--primary); outline: none; }
+    input.error { border-color: #ff4d4f; background: #fff1f0; }
+
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: var(--primary-hover); }
+
+    #responseBox {
+      margin-top: 20px;
+      padding: 15px;
+      background: #eef3ff;
+      border-radius: 8px;
+      display: none;
+      white-space: pre-line;
+      font-size: 0.9rem;
+    }
+
+    /* 商品資訊區塊樣式 */
+    .product-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .stat-box {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #eee;
+    }
+    .stat-label { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
+    .stat-value { font-size: 1.2rem; font-weight: bold; color: #222; }
+    #prod-countdown { color: #d63031; }
+
+    /* 排行榜美化樣式 */
+    .ranking-header {
+      display: grid;
+      grid-template-columns: 50px 1fr 100px 80px 100px;
+      padding: 10px;
+      background: #f1f3f5;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #555;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 100px 80px 100px;
+      padding: 12px 10px;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+      font-size: 0.95rem;
+      transition: background 0.1s;
+    }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-row:hover { background: #f8f9ff; }
+
+    /* 排名徽章 */
+    .rank-badge {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      border-radius: 50%;
+      background: #eee;
+      color: #555;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .rank-row:nth-child(1) .rank-badge { background: #ffd700; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.2); } /* 金 */
+    .rank-row:nth-child(2) .rank-badge { background: #c0c0c0; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.2); } /* 銀 */
+    .rank-row:nth-child(3) .rank-badge { background: #cd7f32; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.2); } /* 銅 */
+
+    .rank-price { font-weight: bold; color: var(--primary); }
+    .rank-score { font-weight: bold; color: #e67e22; }
+    .rank-remaining { font-size: 0.85rem; color: #888; }
+    .rank-user { font-weight: 500; }
+
+    /* RWD */
+    @media (max-width: 900px) {
+      .layout { flex-direction: column; }
+      .left-panel { flex: none; width: auto; }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>管理員後台</h1>
+
+  <div class="layout">
+    <div class="left-panel">
+      <h2>📦 上架商品</h2>
+
+      <label>商品名稱</label>
+      <input id="item_name" placeholder="輸入商品名稱" />
+
+      <label>底價</label>
+      <input id="base_price" type="number" placeholder="輸入商品底價" />
+
+      <label>庫存量</label>
+      <input id="stock" type="number" placeholder="輸入庫存量" />
+
+      <label>維持時間（分鐘）</label>
+      <input id="duration" type="number" placeholder="輸入維持時間" />
+
+      <label>&alpha; (Alpha) 權重 - 價格 P</label>
+      <input id="score_a" type="number" placeholder="輸入 &alpha; 參數" />
+
+      <label>&beta; (Beta) 權重 - 時間 T</label>
+      <input id="score_b" type="number" placeholder="輸入 &beta; 參數" />
+
+      <label>&gamma; (Gamma) 權重 - 會員 W</label>
+      <input id="score_c" type="number" placeholder="輸入 &gamma; 參數" />
+
+      <button onclick="submitItem()">上架商品 & 設定參數</button>
+
+      <div id="responseBox"></div>
+    </div>
+
+    <div class="right-panel-container">
+      
+      <div class="info-card">
+        <h2>ℹ️ 目前商品資訊</h2>
+        <h3 id="prod-name" style="text-align:center; font-size:1.5rem; margin:10px 0;">(暫無商品)</h3>
+        
+        <div class="product-stats">
+          <div class="stat-box">
+            <div class="stat-label">可售份數</div>
+            <div class="stat-value" id="prod-quantity">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">目前最高價</div>
+            <div class="stat-value" id="prod-highest">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">剩餘時間</div>
+            <div class="stat-value" id="prod-countdown">--:--</div>
+          </div>
+           <div class="stat-box">
+            <div class="stat-label">狀態</div>
+            <div class="stat-value" id="prod-status">等待中</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ranking-card">
+        <h2>🏆 即時戰況排行榜</h2>
+        
+        <div class="ranking-header">
+          <div>排名</div>
+          <div>用戶</div>
+          <div>出價</div>
+          <div>積分</div>
+          <div>出價時間</div>
+        </div>
+
+        <div id="prod-ranking">
+          </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const backend = "http://localhost:8000"; // change to your backend / load balancer URL
+    let product = null;
+
+    function validateInputs(fields) {
+      let ok = true;
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (!el.value) {
+          el.classList.add('error');
+          ok = false;
+        } else {
+          el.classList.remove('error');
+        }
+      });
+      return ok;
+    }
+
+    async function submitItem() {
+      const fields = ['item_name','base_price','stock','duration','score_a','score_b','score_c'];
+      if(!validateInputs(fields)){
+        const box = document.getElementById('responseBox');
+        box.style.display='block'; box.style.color='red';
+        box.textContent="❌ 請完整填寫所有欄位！";
+        return;
+      }
+
+      const payload = {
+        name: document.getElementById('item_name').value,
+        base_price: Number(document.getElementById('base_price').value),
+        total_quantity: Number(document.getElementById('stock').value),
+        duration_minutes: Number(document.getElementById('duration').value)
+      };
+
+      const scores = {
+        A: Number(document.getElementById('score_a').value),
+        B: Number(document.getElementById('score_b').value),
+        C: Number(document.getElementById('score_c').value)
+      };
+
+      try {
+        const res1 = await fetch(`${backend}/admin/set_product`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const prodResult = await res1.json();
+        product = prodResult.product;
+
+        await fetch(`${backend}/admin/set_score`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(scores)
+        });
+
+        const box = document.getElementById('responseBox');
+        box.style.display='block'; box.style.color='green';
+        // 使用希臘字母顯示成功訊息
+        box.textContent = `✅ 上架成功！\n商品：${product.name}\n參數：\u03B1=${scores.A}, \u03B2=${scores.B}, \u03B3=${scores.C}`;
+
+        fields.forEach(f=>document.getElementById(f).value="");
+
+      } catch(e) {
+        console.error(e);
+        const box = document.getElementById('responseBox');
+        box.style.display='block'; box.style.color='red';
+        box.textContent="❌ 上架失敗，請檢查後端連線";
+      }
+    }
+
+    async function loadProductInfo() {
+      try {
+        // 取得商品
+        const res = await fetch(`${backend}/api/get_product`);
+        product = await res.json();
+        
+        if(product.name) {
+             document.getElementById("prod-name").textContent = product.name;
+             document.getElementById("prod-quantity").textContent = product.total_quantity;
+             document.getElementById("prod-status").textContent = product.settled ? "已結算" : "競標中";
+             document.getElementById("prod-status").style.color = product.settled ? "red" : "green";
+        } else {
+             document.getElementById("prod-name").textContent = "(暫無商品)";
+        }
+
+        // 取得出價清單
+        const res2 = await fetch(`${backend}/api/bid_list`);
+        const bids = await res2.json();
+
+        // 最高價
+        const highest = bids.length ? Math.max(...bids.map(b=>b.bid_price)) : 0;
+        document.getElementById("prod-highest").textContent = highest > 0 ? `$${highest}` : "-";
+
+        // 排行榜渲染
+        const rankingDiv = document.getElementById("prod-ranking");
+        rankingDiv.innerHTML = "";
+        
+        if(bids.length === 0) {
+             rankingDiv.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">尚無出價紀錄</div>`;
+        } else {
+             bids.forEach((b, idx) => {
+               const row = document.createElement("div");
+               row.className = "rank-row";
+               row.dataset.bidTime = b.timestamp; // 用於倒數計時計算
+               
+               // 計算出價時間差顯示 (僅作參考，實際動態倒數由 updateCountdown 處理)
+               row.innerHTML = `
+                 <div><span class="rank-badge">${idx+1}</span></div>
+                 <div class="rank-user">${b.user_id}</div>
+                 <div class="rank-price">$${b.bid_price}</div>
+                 <div class="rank-score">${b.score.toFixed(2)}</div>
+                 <div class="rank-remaining">--:--</div>
+               `;
+               rankingDiv.appendChild(row);
+             });
+        }
+
+        updateCountdown();
+      } catch(e){
+        console.error(e);
+      }
+    }
+
+    function updateCountdown() {
+      if(!product || !product.start_time || !product.period) return;
+
+      const now = Date.now();
+      let remaining = product.start_time + product.period - now;
+      if(remaining < 0) remaining = 0;
+
+      const min = Math.floor(remaining / 60000);
+      const sec = Math.floor((remaining % 60000) / 1000);
+      document.getElementById("prod-countdown").textContent = `${min}分${sec}秒`;
+
+      // 更新排行榜中的每一列的出價相對時間 (假設原本邏輯是想顯示該次出價當下的剩餘時間，或該出價距離結束的時間)
+      // 這裡維持您原本的邏輯：顯示 (總時長 - (出價時間 - 開始時間)) = 出價當下的剩餘時間
+      document.querySelectorAll(".rank-row").forEach(row => {
+        const bidTime = Number(row.dataset.bidTime);
+        if(bidTime) {
+            let rem = Math.max(product.period - (bidTime - product.start_time), 0);
+            const m = Math.floor(rem / 60000);
+            const s = Math.floor((rem % 60000) / 1000);
+            row.querySelector(".rank-remaining").textContent = `${m}分${s}秒`;
+        }
+      });
+    }
+
+    // 每秒自動刷新
+    setInterval(loadProductInfo, 1000);
+
+    // 初始化
+    loadProductInfo();
+  </script>
+</body>
+</html>

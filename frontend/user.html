@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>競價系統 - 用戶端</title>
+<style>
+/* --- 全局變數設定 (維持原樣) --- */
+:root {
+  --primary: #2563eb;       
+  --primary-hover: #1d4ed8;
+  --bg: #f8fafc;            
+  --card-bg: #ffffff;       
+  --text-main: #0f172a;     
+  --text-muted: #64748b;    
+  --border: #e2e8f0;        
+  --danger: #ef4444;        
+  --success: #10b981;       
+  --accent: #f1f5f9;        
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --radius: 12px;           
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  margin: 0;
+  padding: 40px 20px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+/* --- 左側側邊欄 --- */
+.user-sidebar {
+  position: fixed;
+  top: 40px; left: 20px; width: 240px;
+  background: var(--card-bg); padding: 24px;
+  border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border);
+  z-index: 100; display: flex; flex-direction: column; gap: 20px;
+}
+.user-sidebar .sidebar-row { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+.user-sidebar .sidebar-row:last-of-type { border-bottom: none; }
+.user-sidebar .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+.user-sidebar .value { font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
+.user-sidebar .value.wins { color: #d97706; display: flex; align-items: center; gap: 8px; }
+.logout-btn { margin-top: auto; width: 100%; padding: 12px; background: white; color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; transition: all 0.2s ease; }
+.logout-btn:hover { background: var(--danger); color: white; }
+
+/* --- 主頁面容器 --- */
+.page { max-width: 1100px; margin: 0 auto; margin-left: 280px; margin-right: auto; }
+
+/* --- 商品資訊儀表板 --- */
+.product-dashboard { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px; border: 1px solid var(--border); }
+.product-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+.product-header h2 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+.refresh-btn { background: var(--accent); border: 1px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: all 0.2s; }
+.refresh-btn:hover { background: var(--border); color: var(--text-main); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
+.stat-box { background: var(--bg); padding: 16px; border-radius: 12px; text-align: center; border: 1px solid transparent; }
+.stat-box .label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+.stat-box .val { font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
+.stat-box.highlight { background: #eff6ff; border-color: #dbeafe; }
+.stat-box.highlight .val { color: var(--primary); }
+.stat-box.timer .val { color: var(--danger); font-family: monospace; letter-spacing: 1px; }
+
+/* --- 主內容區 --- */
+.main-content { display: flex; gap: 24px; align-items: flex-start; }
+.bid-section { flex: 0 0 340px; background: var(--card-bg); padding: 24px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+.bid-section h1 { margin: 0 0 20px 0; font-size: 1.25rem; color: var(--text-main); }
+.input-group { margin-bottom: 20px; }
+.input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-muted); }
+.input-group input { width: 100%; padding: 12px 16px; font-size: 1.1rem; border: 2px solid var(--border); border-radius: 8px; transition: border-color 0.2s; background: var(--bg); }
+.input-group input:focus { outline: none; border-color: var(--primary); background: white; }
+.action-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); transition: transform 0.1s, background 0.2s; }
+.action-btn:hover { background: var(--primary-hover); }
+.action-btn:active { transform: translateY(1px); }
+#send_output { margin-top: 16px; padding: 12px; border-radius: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 0.9rem; min-height: 48px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.my-status-area { margin-top: 24px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+.my-status-area h3 { margin: 0 0 8px 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; }
+#myinfo { font-size: 0.95rem; color: #334155; white-space: pre-wrap; line-height: 1.6; }
+
+/* 右欄：排行榜 */
+.ranking-section { flex: 1; background: var(--card-bg); padding: 24px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+.ranking-section h2 { margin: 0 0 15px 0; font-size: 1.25rem; color: var(--text-main); }
+.ranking-header { display: grid; grid-template-columns: 60px 1fr 100px 80px 100px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-weight: 700; color: #64748b; font-size: 0.9rem; margin-bottom: 12px; }
+.ranking-list { max-height: 450px; overflow-y: auto; }
+.rank-row { display: grid; grid-template-columns: 60px 1fr 100px 80px 100px; padding: 12px 16px; border-bottom: 1px solid var(--border); align-items: center; font-size: 0.95rem; transition: background 0.1s; }
+.rank-row:hover { background: #f8fafc; }
+.rank-row:last-child { border-bottom: none; }
+.rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; background: #e2e8f0; color: #64748b; }
+.rank-row:nth-child(1) .rank-badge { background: #ffd700; color: #fff; }
+.rank-row:nth-child(2) .rank-badge { background: #c0c0c0; color: #fff; }
+.rank-row:nth-child(3) .rank-badge { background: #cd7f32; color: #fff; }
+.rank-user { font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-price { font-weight: 700; color: var(--primary); }
+.rank-score { font-weight: 700; color: #d97706; }
+.rank-time { font-size: 0.85rem; color: #94a3b8; }
+.refresh-rank-btn { width: 100%; margin-top: 15px; padding: 12px; background: var(--bg); border: none; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-weight: 600; transition: background 0.2s; }
+.refresh-rank-btn:hover { background: #e2e8f0; color: var(--text-main); }
+
+/* RWD */
+@media (max-width: 1100px) {
+  .user-sidebar { position: static; width: 100%; margin-bottom: 24px; flex-direction: row; justify-content: space-between; align-items: center; padding: 16px 24px; }
+  .user-sidebar .sidebar-row { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .logout-btn { width: auto; margin-top: 0; padding: 8px 24px; }
+  .page { margin-left: auto; margin-right: auto; }
+}
+@media (max-width: 900px) {
+  .main-content { flex-direction: column-reverse; }
+  .bid-section, .ranking-section { width: 100%; flex: auto; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="user-sidebar">
+  <div class="sidebar-row">
+    <div class="label">User ID</div>
+    <div class="value" id="disp-username">--</div>
+  </div>
+  <div class="sidebar-row">
+    <div class="label">Total Wins</div>
+    <div class="value wins">
+      <span>🏆</span>
+      <span id="disp-wins">0</span>
+    </div>
+  </div>
+  <button class="logout-btn" onclick="logout()">登出系統</button>
+</div>
+
+<div class="page">
+  <div class="product-dashboard" id="product-info">
+    <div class="product-header">
+      <h2 id="product-name">載入中...</h2>
+      <button class="refresh-btn" onclick="loadProductInfo()">↻ 刷新資訊</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="label">庫存數量</div>
+        <div class="val" id="product-quantity">-</div>
+      </div>
+      <div class="stat-box highlight">
+        <div class="label">目前最高價</div>
+        <div class="val" id="product-highest">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">得標預估價</div>
+        <div class="val" id="product-min-score-price">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">最低底價</div>
+        <div class="val" id="product-min-required">-</div>
+      </div>
+      <div class="stat-box timer">
+        <div class="label">剩餘時間</div>
+        <div class="val" id="product-countdown">--:--</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="bid-section">
+      <h1>💰 我要出價</h1>
+      <div class="input-group">
+        <label for="inputBid">輸入出價金額</label>
+        <input id="inputBid" type="number" placeholder="例如: 1500" />
+      </div>
+      <button class="action-btn" onclick="sendBid()">送出出價</button>
+      <div id="send_output">準備就緒</div>
+      <div class="my-status-area">
+        <h3>我的狀態</h3>
+        <div id="myinfo">尚未出價</div>
+      </div>
+    </div>
+
+    <div class="ranking-section">
+      <h2>🏆 即時戰況排行榜</h2>
+      <div class="ranking-header">
+        <div>排名</div><div>用戶</div><div>出價</div><div>積分</div><div>時間</div>
+      </div>
+      <div id="ranking" class="ranking-list">
+        <div style="padding:20px; text-align:center; color:#94a3b8;">暫無出價資料</div>
+      </div>
+      <button class="refresh-rank-btn" onclick="loadBidList()">刷新排行榜</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const backend = "http://localhost:8000"; // change to your backend / load balancer URL
+const currentUser = localStorage.getItem("username");
+let userWeight = Number(localStorage.getItem("weight")) || 0; 
+
+// 防呆與狀態變數
+let product = null;          // 存商品基本資料 (Name, Params)
+let currentBids = [];        // 存最新的出價列表 (Bids)
+let hasNotified = false;     // 控制結算彈窗是否已顯示
+let lastStartTime = 0;       // 用來偵測是否換了新商品
+
+// 檢查登入
+if(!currentUser){
+    alert("尚未登入，請先登入");
+    window.location.href = "login.html";
+}
+
+// 初始化 UI
+document.getElementById("disp-username").innerText = currentUser;
+document.getElementById("disp-wins").innerText = userWeight;
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+// 刷新用戶權重
+async function refreshUserWeight(){
+  try {
+    let res = await fetch(`${backend}/api/user_info?username=${encodeURIComponent(currentUser)}`).then(r=>r.json());
+    if(res.status === "ok"){
+      userWeight = res.weight;
+      localStorage.setItem("weight", res.weight);
+      document.getElementById("disp-wins").innerText = res.weight;
+    }
+  } catch(e) {}
+}
+
+// 🔥 修正 1: loadProductInfo 只負責抓「商品靜態資料」與「重置狀態」
+async function loadProductInfo(){
+  try {
+    // 這裡拿到的 product.bids 可能是舊的，所以我們不用它來算錢
+    const newProduct = await fetch(`${backend}/api/get_product`).then(r => r.json());
+
+    // 偵測是否換新商品 -> 重置通知狀態
+    if (newProduct.start_time !== lastStartTime) {
+        hasNotified = false; 
+        lastStartTime = newProduct.start_time;
+        if (!newProduct.settled) {
+             document.getElementById("myinfo").innerText = "新商品上架，尚未出價";
+             document.getElementById("send_output").innerText = "準備就緒";
+        }
+    }
+
+    product = newProduct; // 更新全域變數
+
+    // 更新基本 UI
+    document.getElementById("product-name").innerText = product.name || "等待中...";
+    document.getElementById("product-quantity").innerText = product.total_quantity;
+    document.getElementById("product-min-required").innerText = product.base_price ?? "—";
+    
+    updateCountdown(); // 立即更新一次時間
+
+  } catch(e){ console.error(e); }
+}
+
+// 🔥 修正 2: 獨立的價格計算函式 (使用 loadBidList 抓回來的最新 bids)
+function calculateEstimatedPrice(bids) {
+    if (!product || product.settled) {
+        document.getElementById("product-min-score-price").innerText = product && product.settled ? "已截止" : "—";
+        return;
+    }
+
+    const quantity = product.total_quantity;
+    const scoreA = product.alpha || 3.0; // 從 product 拿係數 (後端快取)
+    const scoreB = product.beta || 5.0;
+    const scoreC = product.gamma || 3.0;
+    
+    // 計算門檻分數 (邏輯不變)
+    let sortedBids = [...bids].sort((a,b)=>b.score - a.score);
+    let seenUsers = new Set();
+    let winnerScores = [];
+    
+    for(let bid of sortedBids){
+      if(!seenUsers.has(bid.user_id)){
+        if (winnerScores.length < quantity) winnerScores.push(bid.score);
+        seenUsers.add(bid.user_id);
+      }
+    }
+    
+    let minWinningScore = 0;
+    if(quantity > 0 && winnerScores.length === quantity) {
+        minWinningScore = winnerScores[quantity - 1];
+    } else if (quantity > 0 && winnerScores.length > 0) {
+        minWinningScore = Math.min(...winnerScores); 
+    }
+
+    let minRequiredPrice = "—";
+    if (minWinningScore > 0 && scoreA > 0) {
+        const now = Date.now();
+        const T_ms = Math.max(0, now - (product.start_time || now)); 
+        const W_est = 1; 
+        
+        // 公式 P = (S - C*W - B/(T+1)) / A
+        const numerator = minWinningScore - (scoreC * W_est) - (scoreB / (T_ms + 1));
+        let P_min = numerator / scoreA;
+        P_min = Math.ceil(Math.max(product.base_price, P_min, 0)); 
+        minRequiredPrice = P_min;
+    } else {
+        minRequiredPrice = product.base_price;
+    }
+
+    document.getElementById("product-min-score-price").innerText = minRequiredPrice;
+
+    // 更新最高價
+    const highest = bids.length ? Math.max(...bids.map(b=>b.bid_price)) : 0;
+    document.getElementById("product-highest").innerText = highest > 0 ? highest : "—";
+}
+
+// 更新倒數計時與排行榜時間
+function updateCountdown(){
+  if(!product || !product.start_time || !product.period) return;
+  const now = Date.now();
+  let remainMs = product.start_time + product.period - now;
+  if(remainMs < 0) remainMs = 0;
+  
+  const minutes = Math.floor(remainMs / 60000);
+  const seconds = Math.floor((remainMs % 60000)/1000);
+  document.getElementById("product-countdown").innerText = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+
+  // 更新排行榜中的時間欄位 (Client-side 計算，不依賴後端)
+  document.querySelectorAll(".rank-row").forEach(row => {
+      const bidTime = Number(row.dataset.bidTime);
+      if(bidTime) {
+          let rem = Math.max(product.period - (bidTime - product.start_time), 0);
+          const m = Math.floor(rem / 60000);
+          const s = Math.floor((rem % 60000) / 1000);
+          row.querySelector(".rank-time").textContent = `${m}分${s}秒`;
+      }
+  });
+}
+
+// 🔥 修正 3: 排行榜更新 + 觸發價格計算
+async function loadBidList(){
+  // 如果 product 還沒載入，先載入 product
+  if(!product) await loadProductInfo();
+
+  try {
+    const res = await fetch(`${backend}/api/bid_list`);
+    const ranking = await res.json();
+    currentBids = ranking; // 更新全域 bids
+
+    // 🚀 重點：拿到最新 bids 後，立刻重算預估價
+    calculateEstimatedPrice(currentBids);
+
+    const rankDiv = document.getElementById("ranking");
+
+    if(ranking.length === 0) {
+         rankDiv.innerHTML = `<div style="padding:20px; text-align:center; color:#94a3b8;">暫無出價資料</div>`;
+    } else {
+        if(rankDiv.innerText.includes("暫無出價資料")) rankDiv.innerHTML = "";
+        
+        ranking.forEach((item, idx)=>{
+          let row = rankDiv.children[idx]; 
+          const displayScore = Number(item.score).toFixed(2);
+          
+          let timeStr = "--:--";
+          if(product && item.timestamp){
+              let rem = Math.max(product.period - (item.timestamp - product.start_time), 0);
+              const m = Math.floor(rem / 60000);
+              const s = Math.floor((rem % 60000) / 1000);
+              timeStr = `${m}分${s}秒`;
+          }
+
+          if (row) {
+            // 更新現有格子
+            row.dataset.bidTime = item.timestamp;
+            const elUser = row.querySelector('.rank-user');
+            const elPrice = row.querySelector('.rank-price');
+            const elScore = row.querySelector('.rank-score');
+
+            if(elUser.innerText !== item.user_id) elUser.innerText = item.user_id;
+            if(elPrice.innerText !== `$${item.bid_price}`) elPrice.innerText = `$${item.bid_price}`;
+            if(elScore.innerText !== displayScore) elScore.innerText = displayScore;
+          } else {
+            // 建立新格子
+            row = document.createElement("div");
+            row.className = "rank-row";
+            row.dataset.bidTime = item.timestamp;
+            row.innerHTML = `
+              <div><span class="rank-badge">${idx+1}</span></div>
+              <div class="rank-user" title="${escapeHtml(item.user_id)}">${escapeHtml(item.user_id)}</div>
+              <div class="rank-price">$${item.bid_price}</div>
+              <div class="rank-score">${displayScore}</div>
+              <div class="rank-time">${timeStr}</div> 
+            `;
+            rankDiv.appendChild(row);
+          }
+        });
+        
+        // 移除多餘格子
+        while (rankDiv.children.length > ranking.length) {
+          rankDiv.removeChild(rankDiv.lastChild);
+        }
+    }
+
+    await updateMyInfo();
+  } catch(err){ console.error(err); }
+}
+
+// 🔥 修正 4: 改良結算通知邏輯
+async function updateMyInfo(){
+  try{
+    const res = await fetch(`${backend}/api/get_bid_price?user_id=${encodeURIComponent(currentUser)}`);
+    const data = await res.json();
+
+    let info = "";
+    if(data.message){
+      if(product && !product.settled) info = "尚未出價";
+      else info = data.message;
+    } else {
+      info = `最高出價：$${data.highest_bid}\n競標積分：${Number(data.score).toFixed(2)}`;
+    }
+
+    // --- 結算狀態檢查 ---
+    // 只要 Redis 說 settled=true，就是結束了
+    if(product && product.settled){
+      // 1. 先顯示是否在名單內 (如果有 winner 名單)
+      if (Array.isArray(product.winner) && product.winner.length > 0) {
+          const isWinner = product.winner.includes(currentUser);
+          if(isWinner) info += "\n🎉 恭喜！你得標了！";
+          else info += "\n很遺憾，本次未得標";
+      } else {
+          // 如果 Redis 已經 settled 但 winner 還沒同步過來 (還在空窗期)
+          info += "\n(結算結果計算中...)";
+      }
+
+      // 2. 彈窗通知 (只彈一次)
+      if (!hasNotified) {
+        if(Array.isArray(product.winner) && product.winner.includes(currentUser)){
+           alert("🎉 恭喜！你已經成功得標！");
+        } else {
+           alert("🔔 競標已結束！請查看結果。");
+        }
+        hasNotified = true; // 鎖定，直到下一次 product.start_time 改變
+      }
+    }
+    
+    document.getElementById("myinfo").innerText = info;
+  } catch(err){}
+}
+
+async function sendBid(){
+  const inputEl = document.getElementById("inputBid");
+  const v = inputEl.value;
+  if(!v && v!==0){ alert("請輸入數字！"); return; }
+  
+  if(product && product.settled){ alert("本商品已結束，無法出價！"); return; }
+  if(product && Number(v) < product.base_price){ alert("低於最低價格!"); return; }
+
+  try{
+    const res = await fetch(`${backend}/api/bid`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({user_id:currentUser, bid_price:Number(v)})
+    });
+    const data = await res.json();
+    if(data.status === "fail"){
+        alert(data.message);
+    } else {
+        document.getElementById("send_output").innerText = "✅ 出價成功：$"+data.bid_price+" (積分:"+Number(data.score).toFixed(1)+")";
+        inputEl.value = ""; 
+        await loadBidList(); // 出價後立刻刷新
+    }
+  } catch(err){
+    document.getElementById("send_output").innerText = "❌ 送出失敗，請檢查後端";
+  }
+}
+
+function logout(){
+    if(confirm("確定要登出嗎？")){
+        localStorage.removeItem("username");
+        localStorage.removeItem("weight");
+        window.location.href = "login.html";
+    }
+}
+
+// 啟動流程
+(async function init(){
+  await refreshUserWeight();
+  await loadProductInfo(); // 先抓一次商品
+  
+  // 定時刷新
+  setInterval(async ()=>{
+    refreshUserWeight();
+    
+    // 每秒檢查一次商品狀態 (看看是不是 settled 了，或換新品了)
+    // 注意：預估價計算移到了 loadBidList 內部，這裡不用擔心
+    loadProductInfo(); 
+    
+    updateCountdown();
+    loadBidList();
+  }, 1000);
+})();
+</script>
+</body>
+</html>
